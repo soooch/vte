@@ -1680,6 +1680,9 @@ public:
         void set_current_shell_integration_mode(vte::parser::Sequence const& seq,
                                                 vte::parser::StringTokeniser::const_iterator& token,
                                                 vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+        void set_xselection(vte::parser::Sequence const& seq,
+                            vte::parser::StringTokeniser::const_iterator& token,
+                            vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
 
         void ringview_update();
 
