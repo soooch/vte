@@ -35,6 +35,7 @@
 #include "caps.hh"
 #include "debug.h"
 #include "sgr.hh"
+#include "widget.hh"
 
 #define BEL_C0 "\007"
 #define ST_C0 _VTE_CAP_ST
@@ -2256,6 +2257,66 @@ Terminal::collect_rect(vte::parser::Sequence const& seq,
         #endif
 
         return rect;
+}
+
+void
+Terminal::set_xselection(vte::parser::Sequence const& seq,
+                         vte::parser::StringTokeniser::const_iterator& token,
+                         vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+{
+        // Pt -> Pc ; Pd
+        // Pc -> { c  p  s  0  1  2  3  4  5  6  7 }*
+        // Pd -> <base64 data> | ?
+        // https://www.xfree86.org/current/ctlseqs.html
+
+        if (std::distance(token, endtoken) != 2)
+                return;
+
+        std::string pc(*token);
+
+        // xterm treats an empty Pc as s 0
+        if (pc.empty()) {
+                pc = "s0";
+        }
+
+        const std::string pd(*++token);
+
+        // not supporting reads
+        if (pd == "?")
+                return;
+        
+        platform::ClipboardType selection = platform::ClipboardType::CLIPBOARD;
+
+        switch(pc.front()) {
+        case 'c':
+                selection = platform::ClipboardType::CLIPBOARD;
+                break;
+        case 'p':
+                selection = platform::ClipboardType::PRIMARY;
+                break;
+        // s is intended to be configurable as either clipboard or primary.
+        // we will treat it as clipboard.
+        case 's':
+                selection = platform::ClipboardType::CLIPBOARD;
+                break;
+        // not supporting cut buffers
+        case '0' ... '7':
+                return;
+        default:
+                return;
+        }
+
+        gsize decoded_len;
+        const auto decoded = g_base64_decode(pd.c_str(), &decoded_len);
+
+        if (!decoded)
+                return;
+
+        widget()->clipboard_set_text(selection,
+                                        reinterpret_cast<char const *>(decoded),
+                                        decoded_len);
+
+        g_free(decoded);
 }
 
 /*
@@ -7555,6 +7616,10 @@ Terminal::OSC(vte::parser::Sequence const& seq)
                 urxvt_extension(seq, it, cend);
                 break;
 
+        case VTE_OSC_XTERM_SET_XSELECTION:
+                set_xselection(seq, it, cend);
+                break;
+
         case VTE_OSC_XTERM_SET_ICON_TITLE:
         case VTE_OSC_XTERM_SET_XPROPERTY:
         case VTE_OSC_XTERM_SET_COLOR_MOUSE_CURSOR_FG:
@@ -7565,7 +7630,6 @@ Terminal::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_XTERM_SET_CURSOR_NAME:
         case VTE_OSC_XTERM_LOGFILE:
         case VTE_OSC_XTERM_SET_FONT:
-        case VTE_OSC_XTERM_SET_XSELECTION:
         case VTE_OSC_XTERM_SET_COLOR_MODE:
         case VTE_OSC_XTERM_RESET_COLOR_MOUSE_CURSOR_FG:
         case VTE_OSC_XTERM_RESET_COLOR_MOUSE_CURSOR_BG:

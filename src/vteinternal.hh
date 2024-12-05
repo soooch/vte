@@ -1797,6 +1797,9 @@ public:
         void vte_termprop(vte::parser::Sequence const& seq,
                           vte::parser::StringTokeniser::const_iterator& token,
                           vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+        void set_xselection(vte::parser::Sequence const& seq,
+                            vte::parser::StringTokeniser::const_iterator& token,
+                            vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
 
         void urxvt_extension(vte::parser::Sequence const& seq,
                              vte::parser::StringTokeniser::const_iterator& token,
